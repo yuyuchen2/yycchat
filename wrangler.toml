@@ -1,4 +1,4 @@
-名字 = "yycchat"
+name = "yycchat"
 compatibility_date = "2024-01-01"
 
 main = "src/chat.mjs"
@@ -10,7 +10,7 @@ bindings = [
 ]
 
 [[rules]]
-请键入 = "Data"
+type = "Data"
 globs = ["**/*.html"]
 fallthrough = false
 
