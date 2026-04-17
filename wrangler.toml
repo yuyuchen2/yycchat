@@ -1,20 +1,15 @@
-name = "yycchat"
-compatibility_date = "2024-01-01"
-
+名字 = "yycchat" # 改成和CI一致的 yycchat
 main = "src/chat.mjs"
+compatibility_date = "2025-01-01"
 
-[durable_objects]
-bindings = [
-  { name = "rooms", class_name = "ChatRoom" },
-  { name = "limiters", class_name = "RateLimiter" },
-]
+# 保留原有配置，只改 name 即可
+[[durable_objects.bindings]]
+名字 = "ChatRoom"
+class_name = "ChatRoom"
 
-[[rules]]
-type = "Data"
-globs = ["**/*.html"]
-fallthrough = false
+[[durable_objects.bindings]]
+名字 = "RateLimiter"
+class_name = "RateLimiter"
 
-# Indicate that you want the ChatRoom and RateLimiter classes to be callable as Durable Objects.
-[[migrations]]
-tag = "v1"                                       # Should be unique for each entry
-new_sqlite_classes = ["ChatRoom", "RateLimiter"]
+[assets]
+directory = "./"
