@@ -1,15 +1,20 @@
-名字 = "yycchat" # 改成和CI一致的 yycchat
+name = "yycchatgo"
+compatibility_date = "2024-01-01"
 main = "src/chat.mjs"
-compatibility_date = "2025-01-01"
 
-# 保留原有配置，只改 name 即可
 [[durable_objects.bindings]]
-名字 = "ChatRoom"
+name = "rooms"
 class_name = "ChatRoom"
 
 [[durable_objects.bindings]]
-名字 = "RateLimiter"
+name = "limiters"
 class_name = "RateLimiter"
 
-[assets]
-directory = "./"
+[[rules]]
+type = "Data"
+globs = ["**/*.html"]
+fallthrough = false
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ChatRoom", "RateLimiter"]
