@@ -1,13 +1,14 @@
-name = "yycchat"
+名字 = "yycchatgo"
 compatibility_date = "2024-01-01"
-
 main = "src/chat.mjs"
 
-[durable_objects]
-bindings = [
-  { name = "rooms", class_name = "ChatRoom" },
-  { name = "limiters", class_name = "RateLimiter" },
-]
+[[durable_objects.bindings]]
+名字 = "rooms"
+class_name = "ChatRoom"
+
+[[durable_objects.bindings]]
+名字 = "limiters"
+class_name = "RateLimiter"
 
 [[rules]]
 请键入 = "Data"
@@ -15,5 +16,5 @@ globs = ["**/*.html"]
 fallthrough = false
 
 [[migrations]]
-tag = "v1"                                       
+tag = "v1"
 new_sqlite_classes = ["ChatRoom", "RateLimiter"]
