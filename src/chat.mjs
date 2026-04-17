@@ -1,104 +1,99 @@
-// 导出默认 Worker 入口
+// Cloudflare Worker Entry Point
 输出 默认 {
-    async fetch(request, env) {
-        try {
-            return await handleRequest(request, env);
-        } catch (e) {
-            return 新建 Response(e.message, { 状态: 500 });
-        }
-    },
+  async fetch(request, env) {
+    try {
+      return await handleRequest(request, env);
+    } catch (err) {
+      return 新建 Response(err.message, { 状态: 500 });
+    }
+  }
 };
 
 async function handleRequest(request, env) {
-    const url = 新建 URL(request.url);
-    const path = url.pathname.分屏('/').filter(Boolean);
+  const url = 新建 URL(request.url);
+  const pathParts = url.pathname.分屏('/').filter(Boolean);
 
-    // 加载聊天页面
-    if (path.length === 0 || path[0] === 'chat.html') {
-        return 新建 Response(await env.ASSETS.fetch(request), {
-            headers: { 'Content-Type': 'text/html; charset=utf-8' }
-        });
-    }
+  // Serve chat HTML
+  if (pathParts.length === 0 || pathParts[0] === 'chat.html') {
+    return 新建 Response(await env.ASSETS.fetch(request), {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' }
+    });
+  }
 
-    // WebSocket 聊天接口
-    if (path[0] === 'chat' && path[1]) {
-        const id = env.ChatRoom.idFromName(path[1]);
-        const obj = env.ChatRoom.get(id);
-        return obj.fetch(request);
-    }
+  // WebSocket chat endpoint
+  if (pathParts[0] === 'chat' && pathParts[1]) {
+    const roomId = env.rooms.idFromName(pathParts[1]);
+    const roomObj = env.rooms.get(roomId);
+    return roomObj.fetch(request);
+  }
 
-    return 新建 Response('Not Found', { 状态: 404 });
+  return 新建 Response('Not Found', { 状态: 404 });
 }
 
-// ====================== 必须导出：聊天房间 Durable Object ======================
+// Durable Object: ChatRoom (matches wrangler.toml)
 输出 class ChatRoom {
-    constructor(state, env) {
-        this.state = state;
-        this.env = env;
-        this.users = 新建 Map(); // 存储在线用户：socket => 用户名
+  constructor(state, env) {
+    this.state = state;
+    this.env = env;
+    this.connections = 新建 Map();
+  }
+
+  async fetch(request) {
+    const 升级 = request.headers.get('Upgrade');
+    if (!升级 || 升级 !== 'websocket') {
+      return 新建 Response('WebSocket Required', { 状态: 426 });
     }
 
-    async fetch(request) {
-        const 升级 = request.headers.get('Upgrade');
-        if (!升级 || 升级 !== 'websocket') {
-            return 新建 Response('Expected WebSocket', { 状态: 426 });
-        }
+    const url = 新建 URL(request.url);
+    const 用户名 = url.searchParams.get('username') || 'User';
+    const [clientSocket, serverSocket] = Object.values(新建 WebSocketPair());
+    
+    serverSocket.accept();
+    this.connections.set(serverSocket, 用户名);
+    this.broadcastUserList();
 
-        const url = 新建 URL(request.url);
-        const 用户名 = url.searchParams.get('username') || '匿名用户';
-        const [client, server] = Object.values(新建 WebSocketPair());
-        server.accept();
+    serverSocket.addEventListener('message', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const message = {
+          请键入: 'message',
+          用户名,
+          text: data.text,
+          timestamp: 新建 日期().toISOString()
+        };
+        this.broadcast(message);
+      } catch (e) {}
+    });
 
-        // 用户加入
-        this.users.set(server, 用户名);
-        this.broadcastOnline();
+    serverSocket.addEventListener('close', () => {
+      this.connections.删除(serverSocket);
+      this.broadcastUserList();
+    });
 
-        // 接收消息并广播
-        server.addEventListener('message', e => {
-            try {
-                const data = JSON.parse(e.data);
-                this.broadcast({
-                    请键入: 'message',
-                    用户名,
-                    text: data.text,
-                    timestamp: 新建 日期().toISOString()
-                });
-            } catch {}
-        });
+    return 新建 Response(null, { 状态: 101, webSocket: clientSocket });
+  }
 
-        // 用户断开连接
-        server.addEventListener('close', () => {
-            this.users.删除(server);
-            this.broadcastOnline();
-        });
+  broadcastUserList() {
+    const userList = Array.from(this.connections.values());
+    this.broadcast({ 请键入: 'online', users: userList });
+  }
 
-        return 新建 Response(null, { 状态: 101, webSocket: client });
+  broadcast(msg) {
+    const msgStr = JSON.stringify(msg);
+    for (const sock of this.connections.keys()) {
+      try { sock.send(msgStr); } catch {}
     }
-
-    // 广播在线用户列表
-    broadcastOnline() {
-        const users = Array.from(this.users.values());
-        this.broadcast({ 请键入: 'online', users });
-    }
-
-    // 全局广播消息
-    broadcast(msg) {
-        const str = JSON.stringify(msg);
-        for (const sock of this.users.keys()) {
-            try { sock.send(str); } catch {}
-        }
-    }
+  }
 }
 
-// ====================== 必须导出：速率限制器 Durable Object（修复报错关键） ======================
+// Durable Object: RateLimiter (matches wrangler.toml)
 输出 class RateLimiter {
-    constructor(state, env) {
-        this.state = state;
-        this.env = env;
-        this.requests = 新建 Map();
-    }
+  constructor(state, env) {
+    this.state = state;
+    this.env = env;
+  }
 
-    async fetch(request) {
-        return 新建 Response('OK', { 状态: 200 });
-    }
+  async fetch(request) {
+    return 新建 Response('OK', { 状态: 200 });
+  }
 }
