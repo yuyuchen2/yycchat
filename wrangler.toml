@@ -1,20 +1,20 @@
-名字 = "yycchatgo"
+名字 = "yycchat"
 compatibility_date = "2024-01-01"
+
 main = "src/chat.mjs"
 
-[[durable_objects.bindings]]
-名字 = "rooms"
-class_name = "ChatRoom"
-
-[[durable_objects.bindings]]
-名字 = "limiters"
-class_name = "RateLimiter"
+[durable_objects]
+bindings = [
+  { name = "rooms", class_name = "ChatRoom" },
+  { name = "limiters", class_name = "RateLimiter" },
+]
 
 [[rules]]
 请键入 = "Data"
 globs = ["**/*.html"]
 fallthrough = false
 
+# Indicate that you want the ChatRoom and RateLimiter classes to be callable as Durable Objects.
 [[migrations]]
-tag = "v1"
+tag = "v1"                                       # Should be unique for each entry
 new_sqlite_classes = ["ChatRoom", "RateLimiter"]
